@@ -1,0 +1,22 @@
+trigger UpdateNumberOfContacts on Contact (after insert, after update, after delete, after undelete) {
+    Set<Id> accountIds = new Set<Id>();
+    If(Trigger.IsAfter){
+        If(Trigger.IsInsert || Trigger.IsUndelete){
+            for (Contact c : Trigger.new) {
+                accountIds.add(c.AccountId);
+            }
+        }
+        If(Trigger.IsUpdate || Trigger.IsDelete){
+            for (Contact c : Trigger.old) {
+                accountIds.add(c.AccountId);
+            }
+        }
+    }
+    List<Account> accountsToUpdate = [SELECT Id, (SELECT Id FROM Contacts) FROM Account WHERE Id IN :accountIds];
+    List<Account> accountsToUpdateWithCount = new List<Account>();
+    for (Account a : accountsToUpdate) {
+        a.Number_of_Contacts__c = a.Contacts.size();
+        accountsToUpdateWithCount.add(a);
+    }
+    Database.update(accountsToUpdateWithCount);
+}
